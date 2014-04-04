@@ -26,11 +26,12 @@ VERSION="${COREOS_RELEASE_VERSION}"
 : ${COREOS_RELEASE_APPID:="{e96281a6-d1af-4bde-9a0a-97b76e56dc57}"}
 : ${SERVER:="https://api.core-os.net/v1/update/"}
 : ${GROUP:="alpha"}
-: ${OEM_ID:="diskless"}
+: ${OEM_FORMAT:="diskless"}
+: ${OEM_BRAND:="Unspecified $OEM_FORMAT"}
 
 fill_attrs() {
     echo -n "appid=\"${COREOS_RELEASE_APPID}\" "
-    echo -n "oem=\"${OEM_ID}\" "
+    echo -n "oem=\"${OEM_BRAND}\" "
     echo -n "version=\"${VERSION}\" "
     echo -n "track=\"${GROUP}\" "
     echo -n "bootid=\"{${BOOT_ID}}\" "
