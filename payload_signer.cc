@@ -22,7 +22,7 @@ using std::vector;
 namespace chromeos_update_engine {
 
 const uint32_t kSignatureMessageOriginalVersion = 1;
-const uint32_t kSignatureMessageCurrentVersion = 1;
+const uint32_t kSignatureMessageCurrentVersion = 2;
 
 namespace {
 
