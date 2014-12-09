@@ -61,8 +61,8 @@ static const char kMachineId[] = "/etc/machine-id";
 static const char kDevImageMarker[] = "/root/.dev_mode";
 const char* const kStatefulPartition = "/media/state";
 
-// Cgroup container is created in update-engine's upstart script located at
-// /etc/init/update-engine.conf.
+// Cgroup container is created in update-engine.service prior to start
+// update-engine.
 static const char kCGroupDir[] = "/sys/fs/cgroup/cpu/update-engine";
 
 bool IsOfficialBuild() {
