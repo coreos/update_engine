@@ -5,7 +5,7 @@ ConditionPathExists=/usr/.noupdate
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/update_engine_stub
+ExecStart=/usr/libexec/update_engine_stub
 
 [Install]
 WantedBy=multi-user.target

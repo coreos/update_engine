@@ -37,15 +37,16 @@ AM_CFLAGS += -fprofile-arcs -ftest-coverage
 LDADD += -lgcov
 endif
 
-sbin_PROGRAMS = update_engine
+libexec_PROGRAMS = update_engine
 bin_PROGRAMS = update_engine_client
 if ENABLE_DELTA_GENERATOR
 bin_PROGRAMS += delta_generator
 endif
 
 sbin_SCRIPTS = coreos-postinst \
-	       coreos-setgoodroot \
-	       systemd/update_engine_stub
+	       coreos-setgoodroot
+
+libexec_SCRIPTS= systemd/update_engine_stub
 
 noinst_LIBRARIES = libupdate_engine.a
 
