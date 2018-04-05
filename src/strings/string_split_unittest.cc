@@ -149,10 +149,12 @@ TEST(StringSplitTest, SplitWords) {
   for (size_t i = 0; i < arraysize(data); ++i) {
     std::vector<std::string> results = SplitWords(data[i].input);
     ASSERT_EQ(data[i].expected_result_count, results.size());
-    if (data[i].expected_result_count > 0)
+    if (data[i].expected_result_count > 0) {
       ASSERT_EQ(data[i].output1, results[0]);
-    if (data[i].expected_result_count > 1)
+    }
+    if (data[i].expected_result_count > 1) {
       ASSERT_EQ(data[i].output2, results[1]);
+    }
   }
 }
 

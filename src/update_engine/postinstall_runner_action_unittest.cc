@@ -127,8 +127,9 @@ void PostinstallRunnerActionTest::DoTest(bool do_losetup, int err_code) {
   if (do_losetup && !err_code) {
     EXPECT_TRUE(install_plan == collector_action.object());
   }
-  if (err_code == 2)
+  if (err_code == 2) {
     EXPECT_EQ(kActionCodePostinstallBootedFromFirmwareB, delegate.code());
+  }
 
   struct stat stbuf;
   int rc = lstat((string(cwd) + "/postinst_called").c_str(), &stbuf);

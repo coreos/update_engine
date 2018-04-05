@@ -280,8 +280,9 @@ void TestTerminateEarly(bool use_download_delegate) {
   // 1 or 0 chunks should have come through
   const off_t resulting_file_size(utils::FileSize(temp_file.GetPath()));
   EXPECT_GE(resulting_file_size, 0);
-  if (resulting_file_size != 0)
+  if (resulting_file_size != 0) {
     EXPECT_EQ(kMockHttpFetcherChunkSize, resulting_file_size);
+  }
 }
 
 }  // namespace {}

@@ -40,8 +40,9 @@ TEST(SimpleKeyValueStoreTest, EmptyTest) {
   map<string, string> empty_map = simple_key_value_store::ParseString("");
   EXPECT_TRUE(empty_map.empty());
   string str = simple_key_value_store::AssembleString(empty_map);
-  if (!str.empty())
+  if (!str.empty()) {
     EXPECT_EQ("\n", str);  // Optionally may end in newline
+  }
 }
 
 }  // namespace chromeos_update_engine
