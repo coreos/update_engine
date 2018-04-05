@@ -141,8 +141,9 @@ class PythonHttpServer : public HttpServer {
     int rc = system((string("wget -t 1 --output-document=/dev/null ") +
                      LocalServerUrlForPath("/quitquitquit")).c_str());
     LOG(INFO) << "done running wget to exit";
-    if (validate_quit_)
+    if (validate_quit_) {
       EXPECT_EQ(0, rc);
+    }
     LOG(INFO) << "waiting for http server with pid " << pid_ << " to terminate";
     int status;
     waitpid(pid_, &status, 0);
@@ -824,8 +825,9 @@ class MultiHttpFetcherTestDelegate : public HttpFetcherDelegate {
   virtual void TransferComplete(HttpFetcher* fetcher, bool successful) {
     EXPECT_EQ(fetcher, fetcher_.get());
     EXPECT_EQ(expected_response_code_ != kHttpResponseUndefined, successful);
-    if (expected_response_code_ != 0)
+    if (expected_response_code_ != 0) {
       EXPECT_EQ(expected_response_code_, fetcher->http_response_code());
+    }
     // Destroy the fetcher (because we're allowed to).
     fetcher_.reset(NULL);
     g_main_loop_quit(loop_);
