@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-set -e
+set -eo pipefail
 umask 0022
 
 OEM_MNT="/usr/share/oem"
@@ -226,9 +226,15 @@ good_sysctl() {
     [[ -n "${GOOD_SYSCTL_SUMS[${sum}]}" ]] && return 0
 }
 
+# Gather metadata about upcoming OS image.
+# shellcheck source=/dev/null
+source "${INSTALL_MNT}/lib/os-release"
+NEXT_VERSION_ID=${VERSION_ID}
+
 # Check to make sure that the current version is less than 1576 (this is the
 # first release to include this Tectonic work-around). This ensures that we
 # only apply this work-around one time.
+# shellcheck source=/dev/null
 source /usr/lib/os-release
 DOCKER_FLAG_PATH="/etc/coreos/docker-1.12"
 if [ ! -e "${DOCKER_FLAG_PATH}" ] && [ "${VERSION_ID%%.*}" -lt 1576 ] &&
@@ -237,6 +243,10 @@ then
     echo "Detected a Tectonic cluster. Writing docker override..."
     cat > "${DOCKER_FLAG_PATH}" <<< yes
 fi
+
+tee_journal() {
+    tee >(systemd-cat -t coreos-postinst)
+}
 
 function patch_grub {
 	# See bug #2400
@@ -339,6 +349,10 @@ if [[ -z "${CGPT}" ]]; then
     exit 1
 fi
 
+call_cgpt() {
+    "${LDSO}" --library-path "${LIBS}" "${CGPT}" "$@"
+}
+
 # locate the dynamic linker
 LDSO=
 for l in "${INSTALL_MNT}"/lib*/ld-2.??.so; do
@@ -353,9 +367,35 @@ if [[ -z "${LDSO}" ]]; then
 fi
 LIBS="${LDSO%/*}"
 
-call_cgpt() {
-    "${LDSO}" --library-path "${LIBS}" "${CGPT}" "$@"
+# Use torcx binary from next-OS image to ensure compatibility
+TORCX_BIN=""
+for bindir in bin/old_bins bin sbin lib/coreos; do
+    if [[ -x "${INSTALL_MNT}/${bindir}/torcx" ]]; then
+        TORCX_BIN="${INSTALL_MNT}/${bindir}/torcx"
+        break
+    fi
+done
+if [[ -z "${TORCX_BIN}" ]]; then
+    echo "Failed to locate torcx binary in ${INSTALL_MNT}" 2>&1 | tee_journal
+    exit 1
+fi
+
+call_torcx() {
+    "${TORCX_BIN}" "$@" 2>&1 | tee_journal
 }
+
+# Check if torcx requires any additional addon available on a remote.
+: "${TORCX_CHECK_REMOTE_ONLY:="true"}"
+TORCX_USR_MOUNTPOINT="${INSTALL_MNT}"
+if [[ -e /etc/torcx/next-profile ]] && [[ -n "${TORCX_BIN}" ]] ; then
+    export -- TORCX_USR_MOUNTPOINT
+    if ! call_torcx profile check --remote-only="${TORCX_CHECK_REMOTE_ONLY}" --os-release="${NEXT_VERSION_ID}" ; then
+        echo "Populating local torcx store with remote images. This may take some time." | tee_journal
+        call_torcx profile populate --os-release="${NEXT_VERSION_ID}"
+        call_torcx profile check --remote-only="${TORCX_CHECK_REMOTE_ONLY}" --os-release="${NEXT_VERSION_ID}"
+        call_torcx image clear-versioned -k "${VERSION_ID}"  -k "${NEXT_VERSION_ID}"
+    fi
+fi
 
 # Mark the new install with one try and the highest priority
 call_cgpt repair "${INSTALL_DEV}"
