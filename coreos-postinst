@@ -238,6 +238,81 @@ then
     cat > "${DOCKER_FLAG_PATH}" <<< yes
 fi
 
+function patch_grub {
+	# See bug #2400
+	local file='/boot/coreos/grub/i386-pc/linux'
+	local tmpfile="$(mktemp)"
+	local escape_hatch='/boot/coreos/grub/skip-bug-2400-patch'
+
+	[[ -e "${escape_hatch}" ]] && return
+	[[ ! -e "${file}.mod" ]] && return
+
+	# Avoid writing to /boot if we don't need to
+	gunzip -c -S .mod "${file}.mod" > "${tmpfile}"
+
+	# Values derived from https://gist.github.com/ajeddeloh/365cfed1d3a326362e05f78720baf4df
+	declare -A offsets
+	offsets=(
+	[1e11052c144ae483cba4f70efe278070c50daa80d1a5febe7c0d08e401baf0ab16a542b7a34da00d7aea1591238f01d9902ac6fbfcce8d82eebcf09d97d132cd]='3378'
+	[2fd5f0fade7c4c986259524f148f79ee1d1353d7ab83d1bdd0d50e52d393d8d896c32ab64eb714ba08861b8ba4f113d19f940a04889fa407784f010f119c8c19]='3378'
+	[3c591be75a6aa903ee8deed5f8116e627f53738eb8a2ceb80aeaab08f485b405b87565148e482a7234138302eb900786d0e14939a3c3451d424052ca2bd73181]='3383'
+	[6d60e369c1b4b484c7221e91d80f03a782b5286137f8087b2bf22b9f54e3507c4947d2a456ba46a6ef3c0c7216dc8251c017e9122f44cba89e32f23a0542afd3]='3383'
+	[6e9e5ebb6cd1a15d5a570d9a06a56c9bf60cb047d858c7220dd9dcfd54ebb87c8e0ea4611ac98a0ab51fec9e87b265b2207973f3e4882d87f62d887da72f87ab]='3404'
+	[82b37fa4b305cab33277d2cf0249008731a69575b5689a47e72fe2a35be4440e0e116bc02191f9b0066ea3ae278327fe3409f28d25d13bae88c5f347dba6a254]='3383'
+	[8a7b03d92a8b115943e7f004820fadd2dc6ab125c077a48fb232a1e9ac77fdb27fbb01d52fd33a6ddf65a9f58ce981244c99bcca821030511caa277bc2f68239]='3378'
+	[a3e9dadfe3cc34189b5fee83bfc01c3c5b42e04ba19cdcd84f8301c42566617b5916294e2414348139d8c5e557a7ccf6c0d3dca0661f2d10c0c0077345630b1d]='3298'
+	[c127d7c1dbd5d11cf7af627e37808ea16166b6430ddd8e96111e503cc78ae1fd78083d474495951743fa1b489140be63178a4bb65dabb0d719c5d0ad9c57eb78]='3298'
+	[f1f9abefa49eeba6a3fe46ba3d254dfc3fa6e2cd8823835e2d982e9cbcd0d82c298e3896dc79d234305d2262a828a7398526906022f8ed7407368725d95e08d8]='3375'
+	)
+
+	declare -A correctvals
+	correctvals=(
+	[1e11052c144ae483cba4f70efe278070c50daa80d1a5febe7c0d08e401baf0ab16a542b7a34da00d7aea1591238f01d9902ac6fbfcce8d82eebcf09d97d132cd]='\x74\x02\x00\x00'
+	[2fd5f0fade7c4c986259524f148f79ee1d1353d7ab83d1bdd0d50e52d393d8d896c32ab64eb714ba08861b8ba4f113d19f940a04889fa407784f010f119c8c19]='\x88\x02\x00\x00'
+	[3c591be75a6aa903ee8deed5f8116e627f53738eb8a2ceb80aeaab08f485b405b87565148e482a7234138302eb900786d0e14939a3c3451d424052ca2bd73181]='\x74\x02\x00\x00'
+	[6d60e369c1b4b484c7221e91d80f03a782b5286137f8087b2bf22b9f54e3507c4947d2a456ba46a6ef3c0c7216dc8251c017e9122f44cba89e32f23a0542afd3]='\x74\x02\x00\x00'
+	[6e9e5ebb6cd1a15d5a570d9a06a56c9bf60cb047d858c7220dd9dcfd54ebb87c8e0ea4611ac98a0ab51fec9e87b265b2207973f3e4882d87f62d887da72f87ab]='\x88\x02\x00\x00'
+	[82b37fa4b305cab33277d2cf0249008731a69575b5689a47e72fe2a35be4440e0e116bc02191f9b0066ea3ae278327fe3409f28d25d13bae88c5f347dba6a254]='\x74\x02\x00\x00'
+	[8a7b03d92a8b115943e7f004820fadd2dc6ab125c077a48fb232a1e9ac77fdb27fbb01d52fd33a6ddf65a9f58ce981244c99bcca821030511caa277bc2f68239]='\x74\x02\x00\x00'
+	[a3e9dadfe3cc34189b5fee83bfc01c3c5b42e04ba19cdcd84f8301c42566617b5916294e2414348139d8c5e557a7ccf6c0d3dca0661f2d10c0c0077345630b1d]='\x74\x02\x00\x00'
+	[c127d7c1dbd5d11cf7af627e37808ea16166b6430ddd8e96111e503cc78ae1fd78083d474495951743fa1b489140be63178a4bb65dabb0d719c5d0ad9c57eb78]='\x74\x02\x00\x00'
+	[f1f9abefa49eeba6a3fe46ba3d254dfc3fa6e2cd8823835e2d982e9cbcd0d82c298e3896dc79d234305d2262a828a7398526906022f8ed7407368725d95e08d8]='\x74\x02\x00\x00'
+	)
+
+	filesum="$(sha512sum "${tmpfile}" | cut -d' ' -f1)"
+	if [[ -z "${offsets[$filesum]}" ]]; then
+		echo "Nothing to do"
+		rm "${tmpfile}"
+		touch "${escape_hatch}"
+		return
+	fi
+
+	printf "${correctvals[$filesum]}" | dd of="${tmpfile}" bs=1 seek="${offsets[$filesum]}" conv=notrunc status=none
+
+	# There's a lot of sync'ing going on. On remotely up to date systems (newer than 1109.1.0), sync can operate on
+	# individual files. On old systems it syncs everything which is slow, but we want to be as safe as possible.
+	# Since we write out the escape hatch after everything is done, this will only happen once.
+
+	# rezip onto /boot so ENOSPC can't cause problems
+	gzip -c "${tmpfile}" > "${file}.tmp"
+	rm "${tmpfile}"
+
+	# in case something goes horribly wrong. Do not use mv -b since it moves the original file to
+	# the backup name then moves the new file to the target, leaving a window with no file
+	cp -p "${file}.mod" "${file}.bak.bug2400"
+	sync "${file}.bak.bug2400" "${file}.tmp"
+
+	# use mv then sync to be as atomic as possible
+	mv "${file}.tmp" "${file}.mod"
+	sync '/boot/coreos/grub/i386-pc/'
+
+	touch "${escape_hatch}"
+
+	echo 'linux.mod updated successfully'
+}
+
+patch_grub
+
 # use the cgpt binary from the image to ensure compatibility
 CGPT=
 for bindir in bin/old_bins bin sbin; do
