@@ -313,6 +313,19 @@ function patch_grub {
 
 patch_grub
 
+# The vmware OEM on Container Linux 490.0.0 - 1353.8.0 includes a build of
+# open-vm-tools with a dlopened plugin that links with the libprocps.so.3
+# shipped in /usr. When upgrading to CL > 1786, which no longer carries
+# libprocps.so.3, copy that library from the old /usr into
+# /usr/share/oem/lib64 so open-vm-tools will continue to work.
+if [[ -e "/usr/lib64/libprocps.so.3" &&
+		! -e "/usr/share/oem/lib64/libprocps.so.3" &&
+		-e "/usr/share/oem/lib64/open-vm-tools/plugins/vmsvc/libguestInfo.so" ]] &&
+		ldd "/usr/share/oem/lib64/open-vm-tools/plugins/vmsvc/libguestInfo.so" | grep -q libprocps.so.3; then
+	cp -a "/usr/lib64/libprocps.so.3" "$(readlink -f /usr/lib64/libprocps.so.3)" \
+		/usr/share/oem/lib64/
+fi
+
 # use the cgpt binary from the image to ensure compatibility
 CGPT=
 for bindir in bin/old_bins bin sbin; do
