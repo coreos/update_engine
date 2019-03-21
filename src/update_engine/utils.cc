@@ -232,8 +232,6 @@ off_t FileSize(const string& path) {
 }
 
 void HexDumpArray(const unsigned char* const arr, const size_t length) {
-  const unsigned char* const char_arr =
-      reinterpret_cast<const unsigned char* const>(arr);
   LOG(INFO) << "Logging array of length: " << length;
   const unsigned int bytes_per_line = 16;
   for (uint32_t i = 0; i < length; i += bytes_per_line) {
@@ -246,7 +244,7 @@ void HexDumpArray(const unsigned char* const arr, const size_t length) {
     string line = header;
     for (unsigned int j = 0; j < bytes_per_this_line; j++) {
       char buf[20];
-      unsigned char c = char_arr[i + j];
+      unsigned char c = arr[i + j];
       r = snprintf(buf, sizeof(buf), "%02x ", static_cast<unsigned int>(c));
       TEST_AND_RETURN(r == 3);
       line += buf;
